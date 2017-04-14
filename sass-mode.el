@@ -23,8 +23,10 @@
 ;;
 
 ;;; Code:
-(require 'sass-output-mode)
 
+(add-to-list 'auto-mode-alist '("\\.sas\\'" . sass-mode))
+
+(require 'sass-output-mode)
 (defvar sass-mode-syntax-table
   (let ((st (make-syntax-table)))
     (modify-syntax-entry ?\\ "."  st)  ;; backslash is punctuation
@@ -136,8 +138,6 @@
      . font-lock-function-name-face))
   "Default highlighting expressions for sass-mode")
 
-;;;###autoload (add-to-list 'auto-mode-alist '("\\.sas\\'" . sass-mode))
-
 
 (define-derived-mode sass-mode
   prog-mode "sass"
@@ -166,6 +166,7 @@
     "Keymap for SAS major mode")
 
   (set (make-local-variable 'font-lock-defaults) '(sass-font-lock-keywords)))
+
 
 (provide 'sass-mode)
 ;;; sass-mode.el ends here
