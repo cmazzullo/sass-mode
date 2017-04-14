@@ -157,13 +157,9 @@
     (interactive)
     (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".log")))
 
-  (defvar sass-mode-map
-    (let ((map (make-keymap)))
-      (define-key map (kbd "<f5>") 'sass-run)
-      (define-key map (kbd "<f6>") 'sass-find-lst)
-      (define-key map (kbd "<f7>") 'sass-find-log)
-      map)
-    "Keymap for SAS major mode")
+  (define-key sass-mode-map (kbd "<f5>") 'sass-run)
+  (define-key sass-mode-map (kbd "<f6>") 'sass-find-lst)
+  (define-key sass-mode-map (kbd "<f7>") 'sass-find-log)
 
   (set (make-local-variable 'font-lock-defaults) '(sass-font-lock-keywords)))
 
