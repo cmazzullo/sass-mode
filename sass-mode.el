@@ -1,4 +1,4 @@
-;;; sass-mode.el --- A minimal and non-awful mode for the SAS language  -*- lexical-binding: t; -*-
+;; sass-mode.el --- A minimal and non-awful mode for the SAS language  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017  Mazzullo
 
@@ -25,33 +25,27 @@
 ;;; Code:
 (require 'sass-output-mode)
 
-(defvar sass-mode-hook nil)
-
-;; SAS FUNCTIONS
-
-(defun sass-run ()
-  (interactive)
-  (async-shell-command (concat "mysas " buffer-file-name) "*sas-output*" "*sas-error*")
-  (message "Executing SAS program..."))
-
-(defun sass-find-lst ()
-  (interactive)
-  (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".lst")))
-
-(defun sass-find-log ()
-  (interactive)
-  (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".log")))
-
-(defvar sass-mode-map
-  (let ((map (make-keymap)))
-    (define-key map (kbd "<f5>") 'sass-run)
-    (define-key map (kbd "<f6>") 'sass-find-lst)
-    (define-key map (kbd "<f7>") 'sass-find-log)
-    map)
-  "Keymap for SAS major mode")
-
-;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.sas\\'" . sass-mode))
+(defvar sass-mode-syntax-table
+  (let ((st (make-syntax-table)))
+    (modify-syntax-entry ?\\ "."  st)  ;; backslash is punctuation
+    (modify-syntax-entry ?+  "."  st)
+    (modify-syntax-entry ?-  "."  st)
+    (modify-syntax-entry ?=  "."  st)
+    (modify-syntax-entry ?%  "w"  st)
+    (modify-syntax-entry ?<  "."  st)
+    (modify-syntax-entry ?>  "."  st)
+    (modify-syntax-entry ?&  "w"  st)
+    (modify-syntax-entry ?|  "."  st)
+    (modify-syntax-entry ?\' "\"" st)
+    (modify-syntax-entry ?*  ". 123b"  st) ; comment character
+    (modify-syntax-entry ?\n  ". 4b"  st) ; comment character
+    (modify-syntax-entry ?\; ". 3b"  st)
+    (modify-syntax-entry ?_  "w"  st)
+    (modify-syntax-entry ?<  "."  st)
+    (modify-syntax-entry ?>  "."  st)
+    (modify-syntax-entry ?/  ". 14"  st) ; comment character
+    (modify-syntax-entry ?.  "w"  st)
+    st))
 
 (defvar sass-font-lock-keywords
   (list
@@ -81,7 +75,7 @@
 	 "where" "while" "window"  "when")
        'symbols)
      . font-lock-keyword-face)
-    `(,(regexp-opt
+   `(,(regexp-opt
        '("as" "after" "append"
 	 "break"
 	 "calender" "catalog" "chart" "cimport" "class" "contents" "compare" "contents" "copy" "corr" "cport" "create" "column"
@@ -104,7 +98,7 @@
 	 "width" "WARNING")
        'symbols)
      . font-lock-constant-face)
-    `(,(regexp-opt
+   `(,(regexp-opt
        '("aceclus" "anova"
 	 "calis" "cancorr" "candisc" "catmod" "cluster" "corresp"
 	 "discrim"
@@ -122,7 +116,7 @@
 	 "varclus" "varcomp" )
        'symbols)
      . font-lock-builtin-face)
-    `(,(regexp-opt
+   `(,(regexp-opt
        '("%bquote"
 	 "%display" "%do"
 	 "%end" "%else" "%eval"
@@ -142,57 +136,36 @@
      . font-lock-function-name-face))
   "Default highlighting expressions for sass-mode")
 
-(defvar sass-mode-syntax-table
-  (let ((st (make-syntax-table)))
+;;;###autoload (add-to-list 'auto-mode-alist '("\\.sas\\'" . sass-mode))
 
-  (modify-syntax-entry ?\\ "."  st)  ;; backslash is punctuation
-  (modify-syntax-entry ?+  "."  st)
-  (modify-syntax-entry ?-  "."  st)
-  (modify-syntax-entry ?=  "."  st)
-  (modify-syntax-entry ?%  "w"  st)
-  (modify-syntax-entry ?<  "."  st)
-  (modify-syntax-entry ?>  "."  st)
-  (modify-syntax-entry ?&  "w"  st)
-  (modify-syntax-entry ?|  "."  st)
-  (modify-syntax-entry ?\' "\"" st)
-  (modify-syntax-entry ?*  ". 123b"  st) ; comment character
-  (modify-syntax-entry ?\n  ". 4b"  st) ; comment character
-  (modify-syntax-entry ?\; ". 3b"  st)
-  (modify-syntax-entry ?_  "w"  st)
-  (modify-syntax-entry ?<  "."  st)
-  (modify-syntax-entry ?>  "."  st)
-  (modify-syntax-entry ?/  ". 14"  st) ; comment character
-  (modify-syntax-entry ?.  "w"  st)
-   st))
 
-(defun sass-mode ()
-  "Major mode for editing SAS files"
-  (interactive)
-  (kill-all-local-variables)
-  (set-syntax-table sass-mode-syntax-table)
-  (use-local-map sass-mode-map)
-  (set (make-local-variable 'font-lock-defaults) '(sass-font-lock-keywords))
-  (setq major-mode 'sass-mode)
-  (setq mode-name "SAS")
-  (run-hooks 'sass-mode-hook))
+(define-derived-mode sass-mode
+  prog-mode "sass"
+  "Major mode for editing SAS programs"
+  :syntax-table sass-mode-syntax-table
+
+  (defun sass-run ()
+    (interactive)
+    (async-shell-command (concat "mysas " buffer-file-name) "*sas-output*" "*sas-error*")
+    (message "Executing SAS program..."))
+
+  (defun sass-find-lst ()
+    (interactive)
+    (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".lst")))
+
+  (defun sass-find-log ()
+    (interactive)
+    (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".log")))
+
+  (defvar sass-mode-map
+    (let ((map (make-keymap)))
+      (define-key map (kbd "<f5>") 'sass-run)
+      (define-key map (kbd "<f6>") 'sass-find-lst)
+      (define-key map (kbd "<f7>") 'sass-find-log)
+      map)
+    "Keymap for SAS major mode")
+
+  (set (make-local-variable 'font-lock-defaults) '(sass-font-lock-keywords)))
 
 (provide 'sass-mode)
 ;;; sass-mode.el ends here
-
-
-
-;; % .. &		w 	which means: word
-;; '		" 	which means: string
-;; *		. 23	which means: punctuation,
-;; 	  is the second character of a comment-start sequence,
-;; 	  is the first character of a comment-end sequence
-;; +		. 	which means: punctuation
-;; -		. 	which means: punctuation
-;; .		w 	which means: word
-;; /		. 14	which means: punctuation,
-;; 	  is the first character of a comment-start sequence,
-;; 	  is the second character of a comment-end sequence
-;; ; .. >		. 	which means: punctuation
-;; \		. 	which means: punctuation
-;; _		w 	which means: word
-;; |		. 	which means: punctuation
