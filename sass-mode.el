@@ -39,18 +39,19 @@
     (modify-syntax-entry ?&  "w"  st)
     (modify-syntax-entry ?|  "."  st)
     (modify-syntax-entry ?\' "\"" st)
-    (modify-syntax-entry ?*  ". 123b"  st) ; comment character
-    (modify-syntax-entry ?\n  ". 4b"  st) ; comment character
-    (modify-syntax-entry ?\; ". 3b"  st)
+    (modify-syntax-entry ?/  ". 14"  st) ; comment character
+    (modify-syntax-entry ?*  ". 23"  st) ; comment character
     (modify-syntax-entry ?_  "w"  st)
     (modify-syntax-entry ?<  "."  st)
     (modify-syntax-entry ?>  "."  st)
-    (modify-syntax-entry ?/  ". 14"  st) ; comment character
     (modify-syntax-entry ?.  "w"  st)
     st))
 
+
 (defvar sass-font-lock-keywords
   (list
+   '("\\(^\\|*\\)\\([[:space:]]*\\*+.*?;\\)" . font-lock-comment-face)
+;;   '("^[[:space:]]*?\\*+?.*?;" . font-lock-comment-face)
    `(,(regexp-opt
        '("_null_"
 	 "abort" "array" "attrib" "and"
@@ -58,25 +59,18 @@
 	 "call" "cards" "cards4" "center"
 	 "data" "delete"  "do" "drop" "dim"
 	 "else" "end" "eof"
-	 "file" "format" "formchar" "footenote" "footenote1" "footenote2" "footenote3" "footenote4"
-	 "footenote5" "footenote6" "footenote7" "footenote8" "footenote9" "footenote10" "firstobs"
-	 "filename"
-	 "go"
-	 "if" "infile" "informat" "input" "in"
-	 "keep"
-	 "label" "length" "link" "lostcard" "ls" "libname" "left" "lrecl"  "lastobs"
-	 "merge" "missing" "mtrace" "mprint" "min" "max"  "mlogic" "missover"  "mdy"
-	 "nonumber" "nobs" "nomprint" "nomtrace" "nosymbolgen" "noovp" "null"
-	 "over" "output" "out" "options" "or" "otherwise"
-	 "put" "ps" "pad"
-	 "rename" "retain" "return" "run" "rank"
-	 "select" "set" "skip" "stop" "symbolgen" "sum"  "source2"  "symput"  "same"  "sum" "substr"
-	 "then" "to" "title" "title1" "title2" "title3" "title4" "title5" "title6" "title7" "title8" "title9"
-	 "title10" "trim"  "time"
-	 "until" "update"
-	 "where" "while" "window"  "when")
-       'symbols)
-     . font-lock-keyword-face)
+	 "file" "format" "formchar" "footenote" "footenote1" "footenote2" "footenote3"
+	 "footenote4" "footenote5" "footenote6" "footenote7" "footenote8" "footenote9"
+	 "footenote10" "firstobs" "filename" "go" "if" "infile" "informat" "input" "in"
+	 "keep" "label" "length" "link" "lostcard" "ls" "libname" "left" "lrecl" "lastobs"
+	 "merge" "missing" "mtrace" "mprint" "min" "max" "mlogic" "missover" "mdy" "nonumber"
+	 "nobs" "nomprint" "nomtrace" "nosymbolgen" "noovp" "null" "over" "output" "out"
+	 "options" "or" "otherwise" "put" "ps" "pad" "rename" "retain" "return" "run" "rank"
+	 "select" "set" "skip" "stop" "symbolgen" "sum" "source2" "symput" "same" "sum"
+	 "substr" "then" "to" "title" "title1" "title2" "title3" "title4" "title5" "title6"
+	 "title7" "title8" "title9" "title10" "trim" "time" "until" "update" "where" "while"
+	 "window" "when")
+       'symbols) . font-lock-keyword-face)
    `(,(regexp-opt
        '("as" "after" "append"
 	 "break"
