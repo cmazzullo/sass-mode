@@ -155,6 +155,8 @@
   (define-key sass-mode-map (kbd "<f6>") 'sass-find-lst)
   (define-key sass-mode-map (kbd "<f7>") 'sass-find-log)
 
+  (setq comment-start "/*"
+	comment-end "*/")
   (set (make-local-variable 'font-lock-defaults) '(sass-font-lock-keywords)))
 
 
