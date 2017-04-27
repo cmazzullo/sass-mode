@@ -24,6 +24,31 @@
 
 ;;; Code:
 
+(defvar sass-indent-amount 4)
+
+(defun sass-indent-line () ;; could use some way to deal with continuation lines
+  (interactive)
+  (cond
+   ((bobp) 0)
+   (t (save-excursion
+	(beginning-of-line)
+	(forward-line -1)
+	(while (and (looking-at "\\([ \t]*\\)$") (not (bobp)))
+	  (forward-line -1))
+	(if (and (looking-at "[ \t]*\\<\\(data\\|proc\\|do\\)\\>.*$")
+		 (not (looking-at "proc[ \t]*\\<\\(print\\|cport\\|cimport\\)\\>.*$")))
+	    (setq col (+ (current-indentation) sass-indent-amount))
+	  (setq col (current-indentation))))
+      (save-excursion
+	(beginning-of-line)
+	(if (looking-at "\\(^\\|;\\)[ \t]*\\<\\(run\\|end\\)\\>;")
+	    (setq col (- col sass-indent-amount))))
+      (save-excursion
+	(beginning-of-line)
+	(delete-horizontal-space)
+	(indent-to col))
+      (end-of-line))))
+
 (add-to-list 'auto-mode-alist '("\\.sas\\'" . sass-mode))
 
 (require 'sass-output-mode)
