@@ -24,30 +24,37 @@
 
 ;;; Code:
 
-(defvar sass-indent-amount 4)
+(setq sass-indent-amount 2)
 
-(defun sass-indent-line () ;; could use some way to deal with continuation lines
+;; indentation problems:
+;; can't deal with continuation lines - should be indented twice the "indent-amount"
+;; cards/datalines statements need special indentation
+;; do loops don't seem to work
+(defun sass-indent-line ()
   (interactive)
   (cond
-   ((bobp) 0)
+   ((save-excursion
+      (beginning-of-line)
+      (bobp))
+    0)
    (t (save-excursion
 	(beginning-of-line)
 	(forward-line -1)
 	(while (and (looking-at "\\([ \t]*\\)$") (not (bobp)))
 	  (forward-line -1))
-	(if (and (looking-at "[ \t]*\\<\\(data\\|proc\\|do\\)\\>.*$")
-		 (not (looking-at "proc[ \t]*\\<\\(print\\|cport\\|cimport\\)\\>.*$")))
+	(if (and (looking-at "\\(^[ \t]*data\\>\\|^[ \t]*proc\\>\\|.*\\<do\\>;\\).*$")
+		 (not (looking-at "proc[ \t]*\\<\\(print\\|cport\\|cimport\\|contents\\)\\>.*$")))
 	    (setq col (+ (current-indentation) sass-indent-amount))
 	  (setq col (current-indentation))))
       (save-excursion
 	(beginning-of-line)
-	(if (looking-at "\\(^\\|;\\)[ \t]*\\<\\(run\\|end\\)\\>;")
+	(if (looking-at "\\(^\\|;\\)[ \t]*\\<\\(run\\|end\\|quit\\)\\>;")
 	    (setq col (- col sass-indent-amount))))
       (save-excursion
 	(beginning-of-line)
 	(delete-horizontal-space)
 	(indent-to col))
-      (end-of-line))))
+      (back-to-indentation))))
 
 (add-to-list 'auto-mode-alist '("\\.sas\\'" . sass-mode))
 
@@ -179,6 +186,8 @@
   (define-key sass-mode-map (kbd "<f5>") 'sass-run)
   (define-key sass-mode-map (kbd "<f6>") 'sass-find-lst)
   (define-key sass-mode-map (kbd "<f7>") 'sass-find-log)
+
+  (setq indent-line-function 'sass-indent-line)
 
   (setq comment-start "/*"
 	comment-end "*/")
