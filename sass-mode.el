@@ -25,6 +25,55 @@
 ;;; Code:
 
 (setq sass-indent-amount 2)
+(setq sass-indent-amount-continuation 4) ;; how much to indent continuation lines
+
+(setq sass-template-dir "/prj/plcoims/study_wide/data_library/data_file_documentation/monthly/09t13/jan17/03.02.17/final_mf_templates/")
+(defun sass-get-template-fname (cancer)
+  (concat sass-template-dir cancer ".template.sas"))
+
+(defun sass-extract-template (file)
+   (when (file-readable-p file)
+     (with-temp-buffer
+       (insert-file-contents file)
+       (goto-char (point-min))
+       (re-search-forward "\*\*Template code to build")
+       (beginning-of-line)
+       (delete-region (point-min) (point))
+       (re-search-forward "^data .*(keep=$")
+       (re-search-forward "^run;$")
+       (delete-region (point) (point-max))
+       (buffer-string))))
+
+(insert (sass-extract-template (sass-get-template-fname "prostate")))
+(setq sass-cancer-template-names
+      (list "biliary"
+	    "bladder"
+	    "breast"
+	    "colorectal"
+	    "endometrial"
+	    "glioma"
+	    "head_and_neck"
+	    "hematopoietic"
+	    "hsq"
+	    "liver"
+	    "lung"
+	    "male_breast"
+	    "melanoma"
+	    "ovarian"
+	    "pancreas"
+	    "prostate"
+	    "renal"
+	    "scu"
+	    "sqx"
+	    "thyroid"
+	    "uppergi"))
+
+(defun sass-insert-prsn-template ()
+  (interactive)
+  (insert
+   (sass-extract-template
+	   (sass-get-template-fname (completing-read "Cancer: " sass-cancer-template-names nil t)))))
+
 
 ;; indentation problems:
 ;; can't deal with continuation lines - should be indented twice the "indent-amount"
@@ -32,29 +81,29 @@
 ;; do loops don't seem to work
 (defun sass-indent-line ()
   (interactive)
-  (cond
-   ((save-excursion
-      (beginning-of-line)
-      (bobp))
-    0)
-   (t (save-excursion
-	(beginning-of-line)
-	(forward-line -1)
-	(while (and (looking-at "\\([ \t]*\\)$") (not (bobp)))
-	  (forward-line -1))
-	(if (and (looking-at "\\(^[ \t]*data\\>\\|^[ \t]*proc\\>\\|.*\\<do\\>;\\).*$")
+  (save-excursion
+    (beginning-of-line)
+    (if (bobp) (progn  ;; if at the beginning of the buffer, indent to zero
+		 (delete-horizontal-space)
+		 (indent-to 0))
+      (progn ;; otherwise, find the last nonblank line and indent to that
+	(save-excursion
+	  (forward-line -1)
+	  (while (and (looking-at "\\([ \t]*\\)$") (not (bobp))) ;; iterate back through blank lines
+	    (forward-line -1))
+
+	  (cond
+	   ((not (looking-at ".*;[ \t]*$"))) ;; find continuation line
+	   ((and (looking-at "\\(^[ \t]*data\\>\\|^[ \t]*proc\\>\\|.*\\<do\\>;\\).*$") ;; find "data" or "proc" lines
 		 (not (looking-at "proc[ \t]*\\<\\(print\\|cport\\|cimport\\|contents\\)\\>.*$")))
-	    (setq col (+ (current-indentation) sass-indent-amount))
-	  (setq col (current-indentation))))
-      (save-excursion
-	(beginning-of-line)
+	    (setq col (+ (current-indentation) sass-indent-amount)))
+	   (t (setq col (current-indentation)))))
+
 	(if (looking-at "\\(^\\|;\\)[ \t]*\\<\\(run\\|end\\|quit\\)\\>;")
-	    (setq col (- col sass-indent-amount))))
-      (save-excursion
-	(beginning-of-line)
+	    (setq col (- col sass-indent-amount)))
 	(delete-horizontal-space)
-	(indent-to col))
-      (back-to-indentation))))
+	(indent-to col))))
+  (back-to-indentation))
 
 (add-to-list 'auto-mode-alist '("\\.sas\\'" . sass-mode))
 
@@ -83,7 +132,7 @@
 (defvar sass-font-lock-keywords
   (list
    '("\\(^\\|*\\)\\([[:space:]]*\\*+.*?;\\)" . font-lock-comment-face)
-;;   '("^[[:space:]]*?\\*+?.*?;" . font-lock-comment-face)
+   ;;   '("^[[:space:]]*?\\*+?.*?;" . font-lock-comment-face)
    `(,(regexp-opt
        '("_null_"
 	 "abort" "array" "attrib" "and"
