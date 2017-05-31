@@ -78,7 +78,6 @@
 ;; indentation problems:
 ;; can't deal with continuation lines - should be indented twice the "indent-amount"
 ;; cards/datalines statements need special indentation
-;; do loops don't seem to work
 (defun sass-indent-line ()
   (interactive)
   (save-excursion
@@ -94,7 +93,7 @@
 
 	  (cond
 	   ((not (looking-at ".*;[ \t]*$"))) ;; find continuation line
-	   ((and (looking-at "\\(^[ \t]*data\\>\\|^[ \t]*proc\\>\\|.*\\<do\\>;\\).*$") ;; find "data" or "proc" lines
+	   ((and (looking-at "\\(^[ \t]*data\\>\\|^[ \t]*proc\\>\\|.*\\<do\\>.*;\\).*$") ;; find "data" or "proc" lines
 		 (not (looking-at "proc[ \t]*\\<\\(print\\|cport\\|cimport\\|contents\\)\\>.*$")))
 	    (setq col (+ (current-indentation) sass-indent-amount)))
 	   (t (setq col (current-indentation)))))
