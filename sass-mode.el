@@ -44,7 +44,7 @@
        (delete-region (point) (point-max))
        (buffer-string))))
 
-(insert (sass-extract-template (sass-get-template-fname "prostate")))
+
 (setq sass-cancer-template-names
       (list "biliary"
 	    "bladder"
@@ -68,36 +68,70 @@
 	    "thyroid"
 	    "uppergi"))
 
+(defun sass-backwards-to-nonblank-line ()
+  (forward-line -1)
+  (while (and (looking-at "\\([ \t]*\\)$") (not (bobp))) ;; iterate back through blank lines
+    (forward-line -1)))
+
+
+(defun sass-backwards-to-noncontinuation-line ()
+  (forward-line -1)
+  (while (and
+	  (or (sass-is-continuation-linep)
+	      (looking-at "\\([ \t]*\\)$"))
+	  (not (bobp))) ;; iterate back through continuation lines
+    (forward-line -1)))
+
+
 (defun sass-insert-prsn-template ()
   (interactive)
   (insert
    (sass-extract-template
 	   (sass-get-template-fname (completing-read "Cancer: " sass-cancer-template-names nil t)))))
 
+(defun sass-is-continuation-linep ()
+  (save-excursion
+    (beginning-of-line)
+    (if (bobp) nil
+      (progn
+	(sass-backwards-to-nonblank-line)
+	(not (looking-at ".*;[ \t]*"))))))
+
+
+(defun sass-is-newblock-linep ()
+  (save-excursion
+    (beginning-of-line)
+    (if (bobp) nil
+      (progn
+	(sass-backwards-to-noncontinuation-line)
+	(and (looking-at "\\(^[ \t]*data\\>\\|^[ \t]*proc\\>\\|.*\\<do\\>.*\\).*$") ;; find "data" or "proc" lines
+	      (not (looking-at "proc[ \t]*\\<\\(print\\|cport\\|cimport\\|contents\\)\\>.*$")))))))
+
 
 ;; indentation problems:
-;; can't deal with continuation lines - should be indented twice the "indent-amount"
 ;; cards/datalines statements need special indentation
 (defun sass-indent-line ()
   (interactive)
   (save-excursion
     (beginning-of-line)
-    (if (bobp) (progn  ;; if at the beginning of the buffer, indent to zero
-		 (delete-horizontal-space)
-		 (indent-to 0))
+    (if (bobp)
+	(progn  ;; if at the beginning of the buffer, indent to zero
+	  (delete-horizontal-space)
+	  (indent-to 0))
       (progn ;; otherwise, find the last nonblank line and indent to that
 	(save-excursion
-	  (forward-line -1)
-	  (while (and (looking-at "\\([ \t]*\\)$") (not (bobp))) ;; iterate back through blank lines
-	    (forward-line -1))
-
 	  (cond
-	   ((not (looking-at ".*;[ \t]*$"))) ;; find continuation line
-	   ((and (looking-at "\\(^[ \t]*data\\>\\|^[ \t]*proc\\>\\|.*\\<do\\>.*;\\).*$") ;; find "data" or "proc" lines
-		 (not (looking-at "proc[ \t]*\\<\\(print\\|cport\\|cimport\\|contents\\)\\>.*$")))
-	    (setq col (+ (current-indentation) sass-indent-amount)))
-	   (t (setq col (current-indentation)))))
-
+	   ((sass-is-continuation-linep)
+	    (progn
+	      (sass-backwards-to-noncontinuation-line)
+	      (setq col (+ (current-indentation) sass-indent-amount-continuation))))
+	   ((sass-is-newblock-linep)
+	    (progn
+	      (sass-backwards-to-noncontinuation-line)
+	      (setq col (+ (current-indentation) sass-indent-amount))))
+	   (t (progn
+		(sass-backwards-to-noncontinuation-line)
+		(setq col (current-indentation))))))
 	(if (looking-at "\\(^\\|;\\)[ \t]*\\<\\(run\\|end\\|quit\\)\\>;")
 	    (setq col (- col sass-indent-amount)))
 	(delete-horizontal-space)
