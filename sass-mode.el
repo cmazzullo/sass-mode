@@ -26,8 +26,8 @@
 
 (setq sass-indent-amount 2)
 (setq sass-indent-amount-continuation 4) ;; how much to indent continuation lines
-
-(setq sass-template-dir "/prj/plcoims/study_wide/data_library/data_file_documentation/monthly/09t13/jan17/03.02.17/final_mf_templates/")
+(setq sass-blank-regex "\\([ \t]\\|/\\*.*\\*/\\)*") ;; blank spaces and comments (both should be ignored)
+(setq sass-template-dir "/prj/plcoims/study_wide/data_library/data_file_documentation/monthly/complete_cohort/jan17/03.02.17/final_mf_templates/")
 (defun sass-get-template-fname (cancer)
   (concat sass-template-dir cancer ".template.sas"))
 
@@ -70,7 +70,7 @@
 
 (defun sass-backwards-to-nonblank-line ()
   (forward-line -1)
-  (while (and (looking-at "\\([ \t]*\\)$") (not (bobp))) ;; iterate back through blank lines
+  (while (and (looking-at (concat sass-blank-regex "$")) (not (bobp))) ;; iterate back through blank lines
     (forward-line -1)))
 
 
@@ -78,9 +78,34 @@
   (forward-line -1)
   (while (and
 	  (or (sass-is-continuation-linep)
-	      (looking-at "\\([ \t]*\\)$"))
+	      (looking-at (concat sass-blank-regex "$")))
 	  (not (bobp))) ;; iterate back through continuation lines
     (forward-line -1)))
+
+
+(defun sass-contents ()
+  (interactive)
+
+  (async-shell-command (concat "mysas " buffer-file-name) (concat "*sas-output*<" (buffer-name) ">"))
+
+  (let ((newname (concat "*sass-contents*<" (buffer-name) ">")))
+    (call-process "contents" nil newname nil (ffap-guess-file-name-at-point))
+    (pop-to-buffer newname)
+    (goto-char (point-min))
+    (save-excursion
+      (search-forward " # ")
+      (delete-region (point-min) (point-at-bol)))
+    (sass-output-mode)))
+
+
+(defun sass-import-ims-database (dname)
+  (interactive "sData block name: ")
+  (let ((filename (read-file-name "Database: " "/prj/plcoims/maindata/mastdata/monthly/09t13/jan17/03.02.17/" nil t)))
+    (insert
+     (concat
+      "filename " dname " pipe \"gunzip -c " filename "\";\nproc cimport infile=" dname " data=" dname ";\n"
+      "proc sort data=" dname ";\n  by plco_id;\nrun;\n"
+     ))))
 
 
 (defun sass-insert-prsn-template ()
@@ -95,7 +120,7 @@
     (if (bobp) nil
       (progn
 	(sass-backwards-to-nonblank-line)
-	(not (looking-at ".*;[ \t]*"))))))
+	(not (looking-at (concat ".*;" sass-blank-regex)))))))
 
 
 (defun sass-is-newblock-linep ()
@@ -110,6 +135,17 @@
 
 ;; indentation problems:
 ;; cards/datalines statements need special indentation
+;; doesn't support multi-line if statements, ie:
+;;   if (abs(T[3] - T[1]) < 1) and
+;; 	(T[2] - T[1] > 4) and
+;; 	(S[1] eq 1) and
+;; 	(S[2] eq 2) and
+;; 	(S[3] eq 1) then do;
+;;   is_outlier = 1;
+;; end;
+;;
+;; note that the "end;" isn't at the right indentation level
+
 (defun sass-indent-line ()
   (interactive)
   (save-excursion
@@ -118,24 +154,18 @@
 	(progn  ;; if at the beginning of the buffer, indent to zero
 	  (delete-horizontal-space)
 	  (indent-to 0))
-      (progn ;; otherwise, find the last nonblank line and indent to that
+      (progn ;; otherwise, find the last nonblank line and indent to that\
 	(save-excursion
-	  (cond
-	   ((sass-is-continuation-linep)
-	    (progn
-	      (sass-backwards-to-noncontinuation-line)
-	      (setq col (+ (current-indentation) sass-indent-amount-continuation))))
-	   ((sass-is-newblock-linep)
-	    (progn
-	      (sass-backwards-to-noncontinuation-line)
-	      (setq col (+ (current-indentation) sass-indent-amount))))
-	   (t (progn
-		(sass-backwards-to-noncontinuation-line)
-		(setq col (current-indentation))))))
+	  (sass-backwards-to-noncontinuation-line)
+	  (setq sass-last-indent (current-indentation)))
+	(cond
+	 ((sass-is-continuation-linep) (setq col (+ sass-last-indent sass-indent-amount-continuation)))
+	 ((sass-is-newblock-linep)     (setq col (+ sass-last-indent sass-indent-amount)))
+	 (t                            (setq col sass-last-indent))))
 	(if (looking-at "\\(^\\|;\\)[ \t]*\\<\\(run\\|end\\|quit\\)\\>;")
 	    (setq col (- col sass-indent-amount)))
 	(delete-horizontal-space)
-	(indent-to col))))
+	(indent-to col)))
   (back-to-indentation))
 
 (add-to-list 'auto-mode-alist '("\\.sas\\'" . sass-mode))
@@ -143,22 +173,22 @@
 (require 'sass-output-mode)
 (defvar sass-mode-syntax-table
   (let ((st (make-syntax-table)))
+    (modify-syntax-entry ?\' "\"" st)
     (modify-syntax-entry ?\\ "."  st)  ;; backslash is punctuation
     (modify-syntax-entry ?+  "."  st)
     (modify-syntax-entry ?-  "."  st)
     (modify-syntax-entry ?=  "."  st)
-    (modify-syntax-entry ?%  "w"  st)
     (modify-syntax-entry ?<  "."  st)
     (modify-syntax-entry ?>  "."  st)
-    (modify-syntax-entry ?&  "w"  st)
     (modify-syntax-entry ?|  "."  st)
-    (modify-syntax-entry ?\' "\"" st)
+    (modify-syntax-entry ?<  "."  st)
+    (modify-syntax-entry ?>  "."  st)
     (modify-syntax-entry ?/  ". 14"  st) ; comment character
     (modify-syntax-entry ?*  ". 23"  st) ; comment character
-    (modify-syntax-entry ?_  "w"  st)
-    (modify-syntax-entry ?<  "."  st)
-    (modify-syntax-entry ?>  "."  st)
-    (modify-syntax-entry ?.  "w"  st)
+    (modify-syntax-entry ?_  "_"  st)
+    (modify-syntax-entry ?.  "_"  st)
+    (modify-syntax-entry ?%  "w"  st)
+    (modify-syntax-entry ?&  "w"  st)
     st))
 
 
@@ -195,7 +225,7 @@
 	 "group"
 	 "headline" "headskip"
 	 "id" "intervals" "into"
-	 "lifetest" "list" "line" "lsmeans"
+	 "lifetest" "list" "line" "lsmeans" "leave"
 	 "method" "means"  "model"
 	 "new" "noobs" "noprint" "n" "NOTE"
 	 "options" "out" "order" "obs" "outsurv"
@@ -254,12 +284,16 @@
 
   (defun sass-run ()
     (interactive)
-    (async-shell-command (concat "mysas " buffer-file-name) "*sas-output*" "*sas-error*")
+    (async-shell-command (concat "mysas " buffer-file-name) (concat "*sas-output*<" (buffer-name) ">"))
     (message "Executing SAS program..."))
 
   (defun sass-find-lst ()
     (interactive)
     (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".lst")))
+
+  (defun sass-find-rtf ()
+    (interactive)
+    (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".rtf")))
 
   (defun sass-find-log ()
     (interactive)
@@ -268,12 +302,14 @@
   (define-key sass-mode-map (kbd "<f5>") 'sass-run)
   (define-key sass-mode-map (kbd "<f6>") 'sass-find-lst)
   (define-key sass-mode-map (kbd "<f7>") 'sass-find-log)
+  (define-key sass-mode-map (kbd "<f8>") 'sass-find-rtf)
 
   (setq indent-line-function 'sass-indent-line)
 
   (setq comment-start "/*"
 	comment-end "*/")
-  (set (make-local-variable 'font-lock-defaults) '(sass-font-lock-keywords)))
+  (set (make-local-variable 'font-lock-defaults) '(sass-font-lock-keywords))
+  (set (make-local-variable 'indent-tabs-mode) nil))
 
 
 (provide 'sass-mode)
