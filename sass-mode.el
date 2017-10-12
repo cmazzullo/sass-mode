@@ -24,8 +24,86 @@
 
 ;;; Code:
 
+;; NEW INDENTATION (DOES NOT WORK YET)
+
+(defun sass-last-exp-indent ()
+  (save-excursion
+    (beginning-of-line)
+    (re-search-backward ";\\s-*\\(\\<[^;]*;\\)")
+    (goto-char (match-beginning 1))
+    (current-indentation)))
+
+(defun sas-is-continuation-p ()
+  (save-excursion
+    (beginning-of-line)
+    (re-search-backward "\\S-")
+    (not
+     (string= (match-string 0) ";"))))
+
+(defun sass-indent ()
+  (interactive)
+  (save-excursion
+    (beginning-of-line)
+    (delete-horizontal-space)
+    (if (sass-is-continuation-p)
+	(indent-to 0)
+      (indent-to (sass-last-exp-indent)))))
+
+;; INDENTATION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (setq sass-indent-amount 2)
 (setq sass-indent-amount-continuation 4) ;; how much to indent continuation lines
+
+(defun sass-backwards-to-nonblank-line ()
+  (forward-line -1)
+  (while (and (looking-at (concat sass-blank-regex "$")) (not (bobp))) ;; iterate back through blank lines
+    (forward-line -1)))
+
+
+(defun sass-backwards-to-noncontinuation-line ()
+  (forward-line -1)
+  (while (and
+	  (or (sass-is-continuation-linep)
+	      (looking-at (concat sass-blank-regex "$")))
+	  (not (bobp))) ;; iterate back through continuation lines
+    (forward-line -1)))
+
+;; indentation problems:
+;; cards/datalines statements need special indentation
+;; doesn't support multi-line if statements, ie:
+;;   if (abs(T[3] - T[1]) < 1) and
+;; 	(T[2] - T[1] > 4) and
+;; 	(S[1] eq 1) and
+;; 	(S[2] eq 2) and
+;; 	(S[3] eq 1) then do;
+;;   is_outlier = 1;
+;; end;
+;;
+;; note that the "end;" isn't at the right indentation level
+
+(defun sass-indent-line ()
+  (interactive)
+  (save-excursion
+    (beginning-of-line)
+    (if (bobp)
+	(progn  ;; if at the beginning of the buffer, indent to zero
+	  (delete-horizontal-space)
+	  (indent-to 0))
+      (progn ;; otherwise, find the last nonblank line and indent to that\
+	(save-excursion
+	  (sass-backwards-to-noncontinuation-line)
+	  (setq sass-last-indent (current-indentation)))
+	(cond
+	 ((sass-is-continuation-linep) (setq col (+ sass-last-indent sass-indent-amount-continuation)))
+	 ((sass-is-newblock-linep)     (setq col (+ sass-last-indent sass-indent-amount)))
+	 (t                            (setq col sass-last-indent))))
+	(if (looking-at "\\(^\\|;\\)[ \t]*\\<\\(run\\|end\\|quit\\)\\>;")
+	    (setq col (- col sass-indent-amount)))
+	(delete-horizontal-space)
+	(indent-to col)))
+  (back-to-indentation))
+
+;; END INDENTATION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (setq sass-blank-regex "\\([ \t]\\|/\\*.*\\*/\\)*") ;; blank spaces and comments (both should be ignored)
 (setq sass-template-dir "/prj/plcoims/study_wide/data_library/data_file_documentation/monthly/complete_cohort/jan17/03.02.17/final_mf_templates/")
 (defun sass-get-template-fname (cancer)
@@ -68,19 +146,6 @@
 	    "thyroid"
 	    "uppergi"))
 
-(defun sass-backwards-to-nonblank-line ()
-  (forward-line -1)
-  (while (and (looking-at (concat sass-blank-regex "$")) (not (bobp))) ;; iterate back through blank lines
-    (forward-line -1)))
-
-
-(defun sass-backwards-to-noncontinuation-line ()
-  (forward-line -1)
-  (while (and
-	  (or (sass-is-continuation-linep)
-	      (looking-at (concat sass-blank-regex "$")))
-	  (not (bobp))) ;; iterate back through continuation lines
-    (forward-line -1)))
 
 
 (defun sass-contents ()
@@ -133,40 +198,6 @@
 	      (not (looking-at "proc[ \t]*\\<\\(print\\|cport\\|cimport\\|contents\\)\\>.*$")))))))
 
 
-;; indentation problems:
-;; cards/datalines statements need special indentation
-;; doesn't support multi-line if statements, ie:
-;;   if (abs(T[3] - T[1]) < 1) and
-;; 	(T[2] - T[1] > 4) and
-;; 	(S[1] eq 1) and
-;; 	(S[2] eq 2) and
-;; 	(S[3] eq 1) then do;
-;;   is_outlier = 1;
-;; end;
-;;
-;; note that the "end;" isn't at the right indentation level
-
-(defun sass-indent-line ()
-  (interactive)
-  (save-excursion
-    (beginning-of-line)
-    (if (bobp)
-	(progn  ;; if at the beginning of the buffer, indent to zero
-	  (delete-horizontal-space)
-	  (indent-to 0))
-      (progn ;; otherwise, find the last nonblank line and indent to that\
-	(save-excursion
-	  (sass-backwards-to-noncontinuation-line)
-	  (setq sass-last-indent (current-indentation)))
-	(cond
-	 ((sass-is-continuation-linep) (setq col (+ sass-last-indent sass-indent-amount-continuation)))
-	 ((sass-is-newblock-linep)     (setq col (+ sass-last-indent sass-indent-amount)))
-	 (t                            (setq col sass-last-indent))))
-	(if (looking-at "\\(^\\|;\\)[ \t]*\\<\\(run\\|end\\|quit\\)\\>;")
-	    (setq col (- col sass-indent-amount)))
-	(delete-horizontal-space)
-	(indent-to col)))
-  (back-to-indentation))
 
 (add-to-list 'auto-mode-alist '("\\.sas\\'" . sass-mode))
 
