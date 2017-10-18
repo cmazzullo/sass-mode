@@ -44,6 +44,7 @@
 (defun sass-inside-comment ()
   "Return whether or not the current point is inside a comment"
   (save-excursion
+    (beginning-of-line)
     (nth 4 (syntax-ppss (point)))))
 
 (defun sass-is-comment-end ()
@@ -99,8 +100,10 @@
 
 (defun sass-get-offset ()
   "Returns the amount of spaces by which the current line should be indented."
-  (if (sass-in-comment)
-      nil
+  (if (sass-inside-comment)
+      (if (sass-is-comment-end)
+	  0
+	sass-indent-amount-comment)
     (if (sass-is-continuation-line)
 	sass-indent-amount-continuation
       (+ (if (sass-is-indentation-line)
