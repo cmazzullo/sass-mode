@@ -31,6 +31,7 @@
 
 (setq sass-indent-amount 2)
 (setq sass-indent-amount-continuation 4) ;; how much to indent continuation lines
+(setq sass-indent-amount-comment 2) ;; how much to indent comment lines
 
 (setq sass-indent-re "^\\s-*\\(proc\\|data\\|.*\\_<do\\|%macro\\)\\_>")
 (setq sass-deindent-re "\\_<\\(end\\|run\\|quit\\|%mend\\)\\s-*;")
@@ -105,7 +106,7 @@
       (+ (if (sass-is-indentation-line)
 	     sass-indent-amount 0)
 	 (if (sass-is-deindent-line)
-	     (- sass-indent-amount) 0))))
+	     (- sass-indent-amount) 0)))))
 
 
 (defun sass-indent-line ()
