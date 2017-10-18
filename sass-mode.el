@@ -32,12 +32,12 @@
 (setq sass-indent-amount 2)
 (setq sass-indent-amount-continuation 4) ;; how much to indent continuation lines
 
-(setq sass-indent-re "^\\(proc\\|data\\|do\\|%macro\\)\\>")
-(setq sass-deindent-re "\\<\\(end\\|run\\|quit\\|%mend\\)\\s-*;")
+(setq sass-indent-re "^\\s-*\\(proc\\|data\\|.*\\_<do\\|%macro\\)\\_>")
+(setq sass-deindent-re "\\_<\\(end\\|run\\|quit\\|%mend\\)\\s-*;")
 
 ;; RE for the last SAS expression:
 ;; (a semicolon or buffer start) (whitespace or comments) (tokens ended by a semicolon)
-(setq sass-last-exp-re "\\(?:\\`\\|;\\\)\\(?:\\s-\\|/\\*[^*]*\\*\/\\)*\\(\\<[^;\]*;\\\)")
+(setq sass-last-exp-re "\\(?:\\`\\|;\\\)\\(?:\\s-\\|/\\*[^*]*\\*\/\\)*\\(\\_<[^;\]*;\\\)")
 
 (defun sass-get-last-exp ()
   "Search backwards for the last SAS expression, return its match data."
@@ -101,13 +101,13 @@
   (save-excursion
     (beginning-of-line)
     (delete-horizontal-space)
-    (indent-to (+ (sass-last-exp-indent) (sass-get-offset)))))
+    (indent-to (+ (sass-last-exp-indent) (sass-get-offset))))
+  (if (looking-at "[\t ]") (back-to-indentation)))
 
 
 ;; END INDENTATION
 
 
-(setq sass-blank-regex "\\([ \t]\\|/\\*.*\\*/\\)*") ;; blank spaces and comments (both should be ignored)
 (setq sass-template-dir "/prj/plcoims/study_wide/data_library/data_file_documentation/monthly/complete_cohort/jan17/03.02.17/final_mf_templates/")
 (defun sass-get-template-fname (cancer)
   (concat sass-template-dir cancer ".template.sas"))
