@@ -39,6 +39,17 @@
 ;; (a semicolon or buffer start) (whitespace or comments) (tokens ended by a semicolon)
 (setq sass-last-exp-re "\\(?:\\`\\|;\\\)\\(?:\\s-\\|/\\*[^*]*\\*\/\\)*\\(\\_<[^;\]*;\\\)")
 
+
+(defun sass-inside-comment ()
+  "Return whether or not the current point is inside a comment"
+  (save-excursion
+    (nth 4 (syntax-ppss (point)))))
+
+(defun sass-is-comment-end ()
+  (save-excursion
+    (beginning-of-line)
+    (looking-at "^[ \\t]*\\*/")))
+
 (defun sass-get-last-exp ()
   "Search backwards for the last SAS expression, return its match data."
   (save-excursion
@@ -87,12 +98,14 @@
 
 (defun sass-get-offset ()
   "Returns the amount of spaces by which the current line should be indented."
-  (if (sass-is-continuation-line)
-      sass-indent-amount-continuation
-    (+ (if (sass-is-indentation-line)
-	   sass-indent-amount 0)
-       (if (sass-is-deindent-line)
-	   (- sass-indent-amount) 0))))
+  (if (sass-in-comment)
+      nil
+    (if (sass-is-continuation-line)
+	sass-indent-amount-continuation
+      (+ (if (sass-is-indentation-line)
+	     sass-indent-amount 0)
+	 (if (sass-is-deindent-line)
+	     (- sass-indent-amount) 0))))
 
 
 (defun sass-indent-line ()
