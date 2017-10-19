@@ -1,4 +1,4 @@
-;; sass-mode.el --- A minimal and non-awful mode for the SAS language  -*- lexical-binding: t; -*-
+;; sass-mode.el --- A small mode for the SAS language  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017  Mazzullo
 
@@ -24,108 +24,17 @@
 
 ;;; Code:
 
-;; INDENTATION
+(require 'sass-output-mode) ;; Handles `.lst` and `.log` files
+(require 'sass-indentation) ;; Indentation functions
 
-;; Issues:
-;; Comments aren't taken care of properly
-
-(setq sass-indent-amount 2)
-(setq sass-indent-amount-continuation 4) ;; how much to indent continuation lines
-(setq sass-indent-amount-comment 2) ;; how much to indent comment lines
-
-(setq sass-indent-re "^\\s-*\\(proc\\|data\\|.*\\_<do\\|%macro\\)\\_>")
-(setq sass-deindent-re "\\_<\\(end\\|run\\|quit\\|%mend\\)\\s-*;")
-
-;; RE for the last SAS expression:
-;; (a semicolon or buffer start) (whitespace or comments) (tokens ended by a semicolon)
-(setq sass-last-exp-re "\\(?:\\`\\|;\\\)\\(?:\\s-\\|/\\*[^*]*\\*\/\\)*\\(\\_<[^;\]*;\\\)")
+(add-to-list 'auto-mode-alist '("\\.sas\\'" . sass-mode))
 
 
-(defun sass-inside-comment ()
-  "Return whether or not the current point is inside a comment"
-  (save-excursion
-    (beginning-of-line)
-    (nth 4 (syntax-ppss (point)))))
-
-(defun sass-is-comment-end ()
-  (save-excursion
-    (beginning-of-line)
-    (looking-at "^[ \\t]*\\*/")))
-
-(defun sass-get-last-exp ()
-  "Search backwards for the last SAS expression, return its match data."
-  (save-excursion
-    (beginning-of-line)
-    (if (re-search-backward sass-last-exp-re nil t)
-	(match-data)
-      nil)))
-
-
-(defun sass-last-exp-indent ()
-  "Return the indentation of the last SAS expression."
-  (save-excursion
-    (set-match-data (sass-get-last-exp))
-    (let ((prev-indent (match-beginning 1)))
-      (if prev-indent
-	  (progn
-	    (goto-char prev-indent)
-	    (current-indentation))
-	0))))
-
-
-(defun sass-is-continuation-line ()
-  "Return t if the current line is a continuation line, else nil."
-  (save-excursion
-    (beginning-of-line)
-    (if (re-search-backward "\\S-" nil t)
-	(not (string-match "[;/]" (match-string 0)))
-      nil)))
-
-
-(defun sass-is-deindent-line ()
-  "Determines if the current expression is a block-ending line (t/nil)."
-  (save-excursion
-    (beginning-of-line)
-    (looking-at sass-deindent-re)))
-
-
-(defun sass-is-indentation-line ()
-  "Determines if the last expression was a block-starting line (t/nil)."
-  (set-match-data (sass-get-last-exp))
-  (let ((match (match-string 1)))
-    (if match
-	(string-match sass-indent-re match)
-      nil)))
-
-
-(defun sass-get-offset ()
-  "Returns the amount of spaces by which the current line should be indented."
-  (if (sass-inside-comment)
-      (if (sass-is-comment-end)
-	  0
-	sass-indent-amount-comment)
-    (if (sass-is-continuation-line)
-	sass-indent-amount-continuation
-      (+ (if (sass-is-indentation-line)
-	     sass-indent-amount 0)
-	 (if (sass-is-deindent-line)
-	     (- sass-indent-amount) 0)))))
-
-
-(defun sass-indent-line ()
-  "Indent the current line according to SAS conventions."
-  (interactive)
-  (save-excursion
-    (beginning-of-line)
-    (delete-horizontal-space)
-    (indent-to (+ (sass-last-exp-indent) (sass-get-offset))))
-  (if (looking-at "[\t ]") (back-to-indentation)))
-
-
-;; END INDENTATION
-
+;; TEMPLATE INSERTION
+;; This handles IMS-specific template files
 
 (setq sass-template-dir "/prj/plcoims/study_wide/data_library/data_file_documentation/monthly/complete_cohort/jan17/03.02.17/final_mf_templates/")
+
 (defun sass-get-template-fname (cancer)
   (concat sass-template-dir cancer ".template.sas"))
 
@@ -167,12 +76,19 @@
 	    "uppergi"))
 
 
+(defun sass-insert-prsn-template ()
+  (interactive)
+  (insert
+   (sass-extract-template
+    (sass-get-template-fname (completing-read "Cancer: " sass-cancer-template-names nil t)))))
+
+
+;; UTILITY FUNCTIONS
 
 (defun sass-contents ()
+  "Print the `proc contents` of the gzipped cport data file at point"
   (interactive)
-
   (async-shell-command (concat "mysas " buffer-file-name) (concat "*sas-output*<" (buffer-name) ">"))
-
   (let ((newname (concat "*sass-contents*<" (buffer-name) ">")))
     (call-process "contents" nil newname nil (ffap-guess-file-name-at-point))
     (pop-to-buffer newname)
@@ -192,17 +108,26 @@
       "proc sort data=" dname ";\n  by plco_id;\nrun;\n"
       ))))
 
-
-(defun sass-insert-prsn-template ()
+(defun sass-run ()
   (interactive)
-  (insert
-   (sass-extract-template
-    (sass-get-template-fname (completing-read "Cancer: " sass-cancer-template-names nil t)))))
+  (async-shell-command (concat "mysas " buffer-file-name) (concat "*sas-output*<" (buffer-name) ">"))
+  (message "Executing SAS program..."))
+
+(defun sass-find-lst ()
+  (interactive)
+  (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".lst")))
+
+(defun sass-find-rtf ()
+  (interactive)
+  (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".rtf")))
+
+(defun sass-find-log ()
+  (interactive)
+  (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".log")))
 
 
-(add-to-list 'auto-mode-alist '("\\.sas\\'" . sass-mode))
+;; LANGUAGE SYNTAX SETUP
 
-(require 'sass-output-mode)
 (defvar sass-mode-syntax-table
   (let ((st (make-syntax-table)))
     (modify-syntax-entry ?\' "\"" st)
@@ -225,6 +150,7 @@
 
 
 (defvar sass-font-lock-keywords
+  "Font-lock keywords for the SAS language, stolen from UltraEdit's highlighting configuration"
   (list
    '("\\(^\\|*\\)\\([[:space:]]*\\*+.*?;\\)" . font-lock-comment-face)
    ;;   '("^[[:space:]]*?\\*+?.*?;" . font-lock-comment-face)
@@ -314,23 +240,6 @@
   "Major mode for editing SAS programs"
   :syntax-table sass-mode-syntax-table
 
-  (defun sass-run ()
-    (interactive)
-    (async-shell-command (concat "mysas " buffer-file-name) (concat "*sas-output*<" (buffer-name) ">"))
-    (message "Executing SAS program..."))
-
-  (defun sass-find-lst ()
-    (interactive)
-    (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".lst")))
-
-  (defun sass-find-rtf ()
-    (interactive)
-    (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".rtf")))
-
-  (defun sass-find-log ()
-    (interactive)
-    (find-file-other-window (concat (file-name-sans-extension (buffer-file-name)) ".log")))
-
   (define-key sass-mode-map (kbd "<f5>") 'sass-run)
   (define-key sass-mode-map (kbd "<f6>") 'sass-find-lst)
   (define-key sass-mode-map (kbd "<f7>") 'sass-find-log)
@@ -338,11 +247,16 @@
 
   (setq indent-line-function 'sass-indent-line)
 
+  ;; Make local variables and define them
+  (mapcar 'make-local-variable
+	  '(comment-start
+	    comment-end
+	    font-lock-defaults
+	    indent-tabs-mode))
   (setq comment-start "/*"
-	comment-end "*/")
-  (set (make-local-variable 'font-lock-defaults) '(sass-font-lock-keywords))
-  (set (make-local-variable 'indent-tabs-mode) nil))
-
+	comment-end "*/"
+	font-lock-defaults 'sass-font-lock-keywords
+	indent-tabs-mode nil)
 
 (provide 'sass-mode)
 ;;; sass-mode.el ends here
