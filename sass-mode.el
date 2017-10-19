@@ -255,7 +255,7 @@
 	    indent-line-function))
   (setq comment-start "/*"
 	comment-end "*/"
-	font-lock-defaults 'sass-font-lock-keywords
+	font-lock-defaults (list sass-font-lock-keywords)
 	indent-tabs-mode nil))
 
 (provide 'sass-mode)
