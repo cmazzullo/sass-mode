@@ -150,7 +150,6 @@
 
 
 (defvar sass-font-lock-keywords
-  "Font-lock keywords for the SAS language, stolen from UltraEdit's highlighting configuration"
   (list
    '("\\(^\\|*\\)\\([[:space:]]*\\*+.*?;\\)" . font-lock-comment-face)
    ;;   '("^[[:space:]]*?\\*+?.*?;" . font-lock-comment-face)
@@ -252,11 +251,12 @@
 	  '(comment-start
 	    comment-end
 	    font-lock-defaults
-	    indent-tabs-mode))
+	    indent-tabs-mode
+	    indent-line-function))
   (setq comment-start "/*"
 	comment-end "*/"
 	font-lock-defaults 'sass-font-lock-keywords
-	indent-tabs-mode nil)
+	indent-tabs-mode nil))
 
 (provide 'sass-mode)
 ;;; sass-mode.el ends here
