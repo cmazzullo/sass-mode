@@ -29,6 +29,29 @@
 
 ;;; Code:
 
+
+(defvar sass-mode-syntax-table
+  (let ((st (make-syntax-table)))
+    (modify-syntax-entry ?\' "\"" st)
+    (modify-syntax-entry ?\\ "."  st)  ;; backslash is punctuation
+    (modify-syntax-entry ?+  "."  st)
+    (modify-syntax-entry ?-  "."  st)
+    (modify-syntax-entry ?=  "."  st)
+    (modify-syntax-entry ?<  "."  st)
+    (modify-syntax-entry ?>  "."  st)
+    (modify-syntax-entry ?|  "."  st)
+    (modify-syntax-entry ?<  "."  st)
+    (modify-syntax-entry ?>  "."  st)
+    (modify-syntax-entry ?/  ". 14"  st) ; comment character
+    (modify-syntax-entry ?*  ". 23"  st) ; comment character
+    (modify-syntax-entry ?_  "_"  st)
+    (modify-syntax-entry ?.  "_"  st)
+    (modify-syntax-entry ?%  "w"  st)
+    (modify-syntax-entry ?&  "w"  st)
+    st))
+
+
+
 (setq sass-indent-amount 2)
 (setq sass-indent-amount-continuation 4) ;; how much to indent continuation lines
 (setq sass-indent-amount-comment 2) ;; how much to indent comment lines
