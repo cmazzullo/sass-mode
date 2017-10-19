@@ -128,27 +128,6 @@
 
 ;; LANGUAGE SYNTAX SETUP
 
-(defvar sass-mode-syntax-table
-  (let ((st (make-syntax-table)))
-    (modify-syntax-entry ?\' "\"" st)
-    (modify-syntax-entry ?\\ "."  st)  ;; backslash is punctuation
-    (modify-syntax-entry ?+  "."  st)
-    (modify-syntax-entry ?-  "."  st)
-    (modify-syntax-entry ?=  "."  st)
-    (modify-syntax-entry ?<  "."  st)
-    (modify-syntax-entry ?>  "."  st)
-    (modify-syntax-entry ?|  "."  st)
-    (modify-syntax-entry ?<  "."  st)
-    (modify-syntax-entry ?>  "."  st)
-    (modify-syntax-entry ?/  ". 14"  st) ; comment character
-    (modify-syntax-entry ?*  ". 23"  st) ; comment character
-    (modify-syntax-entry ?_  "_"  st)
-    (modify-syntax-entry ?.  "_"  st)
-    (modify-syntax-entry ?%  "w"  st)
-    (modify-syntax-entry ?&  "w"  st)
-    st))
-
-
 (defvar sass-font-lock-keywords
   (list
    '("\\(^\\|*\\)\\([[:space:]]*\\*+.*?;\\)" . font-lock-comment-face)
@@ -233,30 +212,54 @@
      . font-lock-function-name-face))
   "Default highlighting expressions for sass-mode")
 
+;; Emacs 23 compatibility. Yes this is disgusting, working on it
+(if (> emacs-major-version 23)
+    (define-derived-mode sass-mode
+      prog-mode ;; this is the compatibility/macro problem
+      "sass" "Major mode for editing SAS programs"
+      :syntax-table sass-mode-syntax-table
 
-(define-derived-mode sass-mode
-  prog-mode "sass"
-  "Major mode for editing SAS programs"
-  :syntax-table sass-mode-syntax-table
+      (define-key sass-mode-map (kbd "<f5>") 'sass-run)
+      (define-key sass-mode-map (kbd "<f6>") 'sass-find-lst)
+      (define-key sass-mode-map (kbd "<f7>") 'sass-find-log)
+      (define-key sass-mode-map (kbd "<f8>") 'sass-find-rtf)
 
-  (define-key sass-mode-map (kbd "<f5>") 'sass-run)
-  (define-key sass-mode-map (kbd "<f6>") 'sass-find-lst)
-  (define-key sass-mode-map (kbd "<f7>") 'sass-find-log)
-  (define-key sass-mode-map (kbd "<f8>") 'sass-find-rtf)
+      ;; Make local variables and define them
+      (mapcar 'make-local-variable
+	      '(comment-start
+		comment-end
+		font-lock-defaults
+		indent-tabs-mode
+		indent-line-function))
+      (setq comment-start "/*"
+	    comment-end "*/"
+	    font-lock-defaults (list sass-font-lock-keywords)
+	    indent-tabs-mode nil
+	    indent-line-function 'sass-indent-line))
 
-  (setq indent-line-function 'sass-indent-line)
+  (define-derived-mode sass-mode
+    fundamental-mode
+    "sass" "Major mode for editing SAS programs"
+    :syntax-table sass-mode-syntax-table
 
-  ;; Make local variables and define them
-  (mapcar 'make-local-variable
-	  '(comment-start
-	    comment-end
-	    font-lock-defaults
-	    indent-tabs-mode
-	    indent-line-function))
-  (setq comment-start "/*"
-	comment-end "*/"
-	font-lock-defaults (list sass-font-lock-keywords)
-	indent-tabs-mode nil))
+    (define-key sass-mode-map (kbd "<f5>") 'sass-run)
+    (define-key sass-mode-map (kbd "<f6>") 'sass-find-lst)
+    (define-key sass-mode-map (kbd "<f7>") 'sass-find-log)
+    (define-key sass-mode-map (kbd "<f8>") 'sass-find-rtf)
+
+    ;; Make local variables and define them
+    (mapcar 'make-local-variable
+	    '(comment-start
+	      comment-end
+	      font-lock-defaults
+	      indent-tabs-mode
+	      indent-line-function))
+    (setq comment-start "/*"
+	  comment-end "*/"
+	  font-lock-defaults (list sass-font-lock-keywords)
+	  indent-tabs-mode nil
+	  indent-line-function 'sass-indent-line)))
+
 
 (provide 'sass-mode)
 ;;; sass-mode.el ends here
