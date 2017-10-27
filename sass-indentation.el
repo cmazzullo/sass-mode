@@ -57,10 +57,11 @@
 (setq sass-indent-amount-comment 2) ;; how much to indent comment lines
 
 (setq sass-indent-re "^\\s-*\\(proc\\|data\\|.*\\_<do\\|%macro\\)\\_>")
-(setq sass-deindent-re "\\_<\\(end\\|run\\|quit\\|%mend\\)\\s-*;")
+(setq sass-deindent-re "\\_<\\(end\\|run\\|quit\\|%mend\\( \\_<.*\\_>\\)?\\)\\s-*;")
 
 ;; RE for the last SAS expression:
 ;; (a semicolon or buffer start) (whitespace or comments) (tokens ended by a semicolon)
+;; BUG: semicolons in quoted strings throw this off :(
 (setq sass-last-exp-re "\\(?:\\`\\|;\\\)\\(?:\\s-\\|/\\*[^*]*\\*\/\\)*\\(\\_<[^;\]*;\\\)")
 
 
